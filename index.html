@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>大模型 API 接入实战 —— 豆包课程智能答疑助教</title>
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Noto+Sans+SC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root{
+  --bg:#f5f7fb; --card:#ffffff; --ink:#1a2233; --sub:#5b6577; --line:#e6ebf2;
+  --brand:#3b6ef6; --brand2:#7a5cff; --ok:#12a05c; --warn:#e8890c; --danger:#e5484d;
+  --code-bg:#1e2433; --code-ink:#e6ecf7; --soft:#eef3ff;
+  --shadow:0 10px 30px rgba(30,60,120,.10); --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:scroll}
+body{font-family:"Noto Sans SC",-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink);line-height:1.75}
+
+.hero{background:linear-gradient(135deg,#2b58d9 0%,#6a4bff 55%,#8a5cf6 100%);color:#fff;padding:56px 24px 48px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-80px;top:-80px;width:320px;height:320px;border-radius:50%;background:rgba(255,255,255,.08)}
+.hero::before{content:"";position:absolute;left:-60px;bottom:-120px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.07)}
+.wrap{max-width:1080px;margin:0 auto;position:relative;z-index:1}
+.hero .tag{display:inline-block;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.28);padding:5px 14px;border-radius:999px;font-size:13px;letter-spacing:.5px;margin-bottom:18px}
+.hero h1{font-size:32px;font-weight:900;letter-spacing:1px;margin-bottom:12px}
+.hero .sub{font-size:16px;opacity:.92;max-width:740px}
+.hero .meta{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px}
+.hero .meta span{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);padding:6px 14px;border-radius:10px;font-size:13px}
+
+.layout{max-width:1080px;margin:0 auto;padding:28px 24px 80px;display:grid;grid-template-columns:220px 1fr;gap:28px}
+.toc{position:sticky;top:20px;align-self:start;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 14px;box-shadow:var(--shadow)}
+.toc h4{font-size:13px;color:var(--sub);margin-bottom:12px;padding-left:10px;letter-spacing:1px}
+.toc a{display:block;padding:9px 10px;border-radius:10px;color:var(--sub);text-decoration:none;font-size:14px;font-weight:500;border-left:3px solid transparent}
+.toc a:hover{background:var(--soft);color:var(--brand)}
+.toc a.active{background:var(--soft);color:var(--brand);border-left-color:var(--brand)}
+.toc a .n{display:inline-block;width:22px;color:var(--brand2);font-weight:700}
+
+main{min-width:0}
+section{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:30px 30px;margin-bottom:26px;scroll-margin-top:20px}
+.sec-head{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.sec-num{flex:none;width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}
+.sec-head h2{font-size:22px;font-weight:800}
+.sec-desc{color:var(--sub);margin:6px 0 22px;font-size:15px}
+
+h3{font-size:17px;font-weight:700;margin:26px 0 12px;display:flex;align-items:center;gap:8px}
+h3::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--brand)}
+p{margin:10px 0}
+ul,ol{margin:10px 0 10px 4px;padding-left:22px}
+li{margin:7px 0}
+strong{color:var(--ink)}
+.muted{color:var(--sub)}
+
+.step{border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:16px 0;background:#fcfdff}
+.step-title{display:flex;align-items:center;gap:10px;font-weight:700;margin-bottom:8px}
+.step-badge{flex:none;width:26px;height:26px;border-radius:8px;background:var(--soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+
+.box{border-radius:12px;padding:14px 16px;margin:16px 0;font-size:14.5px;border-left:4px solid}
+.box .bt{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.box.tip{background:#eef9f3;border-color:var(--ok)} .box.tip .bt{color:var(--ok)}
+.box.warn{background:#fff6e8;border-color:var(--warn)} .box.warn .bt{color:var(--warn)}
+.box.danger{background:#fdeef0;border-color:var(--danger)} .box.danger .bt{color:var(--danger)}
+.box.key{background:var(--soft);border-color:var(--brand)} .box.key .bt{color:var(--brand)}
+
+.code{position:relative;background:var(--code-bg);border-radius:12px;margin:14px 0;overflow:hidden}
+.code pre{padding:18px 18px 16px;overflow-x:auto}
+.code code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;color:var(--code-ink);font-size:13.5px;line-height:1.7;white-space:pre}
+.copy{position:absolute;top:10px;right:10px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff;font-size:12px;padding:5px 12px;border-radius:8px;cursor:pointer;transition:.2s}
+.copy:hover{background:rgba(255,255,255,.22)}
+.inline{font-family:"JetBrains Mono",Menlo,Consolas,monospace;background:var(--soft);color:var(--brand);padding:2px 7px;border-radius:6px;font-size:13px}
+
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:18px 0}
+.node{background:#fff;border:1.5px solid var(--brand);border-radius:12px;padding:12px 16px;font-weight:600;font-size:14px;text-align:center;flex:1;min-width:120px}
+.node small{display:block;font-weight:400;color:var(--sub);font-size:12px;margin-top:3px}
+.arrow{color:var(--brand2);font-weight:900;font-size:20px}
+.flow .node.back{border-color:var(--brand2);background:#f6f3ff}
+
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th,td{border:1px solid var(--line);padding:11px 13px;text-align:left;vertical-align:top}
+th{background:var(--soft);font-weight:700}
+td code{font-family:"JetBrains Mono",Menlo,Consolas,monospace;font-size:12.5px;background:#f2f5fb;padding:2px 6px;border-radius:5px}
+
+.check li{list-style:none;position:relative;padding-left:30px}
+.check li::before{content:"✓";position:absolute;left:0;top:2px;width:20px;height:20px;border-radius:6px;background:var(--soft);color:var(--brand);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+/* Demo 模拟聊天 */
+.demo{border:1px solid var(--line);border-radius:16px;overflow:hidden;margin:18px 0}
+.demo-bar{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--soft);border-bottom:1px solid var(--line)}
+.demo-bar .name{font-weight:700;font-size:14px}
+.demo-bar select{padding:6px 10px;border:1px solid var(--line);border-radius:8px;font-size:13px;background:#fff;color:var(--ink)}
+.chat{height:340px;overflow-y:auto;padding:18px;background:#fafbfe;display:flex;flex-direction:column;gap:14px}
+.msg{max-width:78%;padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.7;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:var(--brand);color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.bot.refuse{background:#fff6e8;border-color:#f3d9a8}
+.chat .thinking{align-self:flex-start;color:var(--sub);font-size:13px;padding:6px 4px}
+.input-row{display:flex;gap:10px;padding:14px;border-top:1px solid var(--line);background:#fff}
+.input-row input{flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:14px;font-family:inherit}
+.input-row button{border:none;background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:11px 20px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+.quick{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.quick button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:13px;color:var(--sub);cursor:pointer}
+.quick button:hover{background:var(--soft);color:var(--brand)}
+
+.qa-good{color:var(--ok);font-weight:700}
+.qa-bad{color:var(--danger);font-weight:700}
+
+.shot{width:100%;border:1px solid var(--line);border-radius:12px;margin:14px 0;box-shadow:var(--shadow)}
+.shot-cap{font-size:13px;color:var(--sub);margin:-6px 0 14px}
+
+@media(max-width:860px){
+  .layout{grid-template-columns:1fr}
+  .toc{position:static;display:none}
+  .hero h1{font-size:24px}
+  section{padding:22px 18px}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <span class="tag">大模型 API 调研 · 网页 Demo 实战分享 · 第 5 组</span>
+    <h1>豆包课程智能答疑助教<br>从领 Key 到 AI 聊天页面实战</h1>
+    <p class="sub">把豆包大模型（火山方舟）「装」进我们的全栈项目，用一段提示词把它变成只讲课程的助教：前端提问、后端带 Key 转发、模型回答原路返回。</p>
+    <div class="meta">
+      <span>🗂 方向：课程答疑（区别于通用聊天 / 电商客服）</span>
+      <span>🔑 平台：豆包 · 火山方舟（主）/ 硅基流动（对比）</span>
+      <span>🧩 架构：前端 → 后端 /api/chat → 大模型</span>
+      <span>👤 分享人：赵雨欣</span>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+
+  <nav class="toc" id="toc">
+    <h4>分享目录</h4>
+    <a href="#s1"><span class="n">01</span>选题介绍与差异化</a>
+    <a href="#s2"><span class="n">02</span>全局架构与 Key 安全</a>
+    <a href="#s3"><span class="n">03</span>领豆包 Key 与连通测试</a>
+    <a href="#s4"><span class="n">04</span>核心实现五步走</a>
+    <a href="#s4b"><span class="n">04+</span>本组实操做法举例</a>
+    <a href="#s5"><span class="n">05</span>现场 Demo 演示</a>
+    <a href="#s6"><span class="n">06</span>换平台只改三行</a>
+    <a href="#s7"><span class="n">07</span>踩坑速查</a>
+    <a href="#s8"><span class="n">08</span>答辩三问与总结</a>
+  </nav>
+
+  <main>
+
+    <!-- 1 选题 -->
+    <section id="s1">
+      <div class="sec-head"><div class="sec-num">1</div><h2>选题介绍：我们做了什么</h2></div>
+      <p class="sec-desc">一句话：一个嵌在项目里的「计算机课助教」，接入豆包大模型，只回答学习相关问题，会多轮追问，无关闲聊礼貌拒答。</p>
+
+      <h3>功能清单</h3>
+      <ul>
+        <li><strong>课程答疑人设</strong>：专门回答前端、Java 后端、计算机网络、全栈开发等学习问题；</li>
+        <li><strong>范围约束</strong>：游戏、娱乐、闲聊、生活琐事等无关问题，礼貌说明并引导回到学习话题；</li>
+        <li><strong>多轮对话</strong>：能接上上文，比如追问「刚才讲的 CORS 到底是什么」；</li>
+        <li><strong>平台可切换</strong>：页面下拉框在豆包方舟 / 硅基流动之间切换，业务代码不变。</li>
+      </ul>
+
+      <div class="box tip">
+        <div class="bt">💡 为什么选这个方向（差异化，不和别人撞）</div>
+        大部分组会做「通用聊天机器人」或「普通电商客服」。我们贴本门计算机课的场景，提示词约束和拒答边界最容易讲清楚，评委和同学一听就懂，Demo 也更稳定。
+      </div>
+    </section>
+
+    <!-- 2 架构与安全 -->
+    <section id="s2">
+      <div class="sec-head"><div class="sec-num">2</div><h2>全局架构与 Key 安全</h2></div>
+      <p class="sec-desc">动手前先讲清：一次提问是怎么走完整条链路的。</p>
+
+      <div class="flow">
+        <div class="node">网页前端<small>输入问题 · 展示回答</small></div>
+        <div class="arrow">→</div>
+        <div class="node back">后端 /api/chat<small>带 Key 转发</small></div>
+        <div class="arrow">→</div>
+        <div class="node">豆包方舟接口<small>OpenAI 兼容格式</small></div>
+        <div class="arrow">→</div>
+        <div class="node back">答案原路返回<small>前端追加气泡</small></div>
+      </div>
+
+      <div class="box danger">
+        <div class="bt">⚠️ 为什么 Key 不能放前端？</div>
+        请求必须带 API Key，而网页代码公开——按 F12 就能看到。Key 放前端等于把家门钥匙贴在门上，别人能拿去刷你的免费额度，甚至产生欠费。
+      </div>
+      <div class="box key">
+        <div class="bt">🔑 正确做法</div>
+        Key 只放在后端 <span class="inline">.env</span>，前端只把问题发给自己的后端，由后端带 Key 去请求模型。思路和连数据库一样：<strong>密码不进前端</strong>。
+      </div>
+      <div class="box danger">
+        <div class="bt">🚫 三条红线</div>
+        <ul>
+          <li>Key 不写进 <span class="inline">AGENTS.md</span>；</li>
+          <li>不提交 Git（<span class="inline">.env</span> 必须进 <span class="inline">.gitignore</span>）；</li>
+          <li>不截图发群，展示时打码成 <span class="inline">sk-****</span>。</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- 3 领 Key -->
+    <section id="s3">
+      <div class="sec-head"><div class="sec-num">3</div><h2>领豆包 Key 与连通测试</h2></div>
+      <p class="sec-desc">豆包模型在火山方舟（Ark）平台调用，新用户每个模型有一定免费调用额度，0 成本学习。</p>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">1</span>注册火山引擎并实名认证</div>
+        <p>进入 <a href="https://console.volcengine.com/ark/region:cn-beijing/overview" target="_blank" rel="noopener">火山方舟控制台</a>，注册账号并完成实名认证。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">2</span>开通要用的对话模型</div>
+        <p>控制台 →「开通管理」→ 选一个对话模型（如 Doubao-Seed 系列）→ 开通服务。未开通前可先用免费额度，开通后仍优先消耗剩余免费额度。</p>
+        <div class="box warn">先开通模型再调接口。没开通对应模型就调用，会报模型无权限 / 不可用，容易被误以为是代码写错。</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">3</span>新建 API Key 并复制（本组实操截图）</div>
+        <p>左侧「API Key 管理」→ 蓝色「创建 API Key」→ 起名字 → 创建后立刻复制。地址：<a href="https://ark.volcengine.com/region:cn-beijing/apikey" target="_blank" rel="noopener">ark.volcengine.com/apikey</a>。</p>
+        <img class="shot" src="https://media.doubao.com/space/api/box/stream/download/all_by_mount_point/YK0JbGVLLoeHgTxT1uucrhbunkw" alt="火山方舟 API Key 管理页（Key 已打码）">
+        <p class="shot-cap">▲ 本组在方舟「API Key 管理」创建的 Key（页面 Key 已打码，名称：<span class="inline">zyx-api-key-20261125151919</span>，所属项目 default）</p>
+        <p>本组 Key（展示已脱敏）：<span class="inline">ark-ff492a1c-****-****-****-65c0f</span>，完整原文只保存在后端 <span class="inline">.env</span>，不进课件、不进 Git、不发群。</p>
+        <div class="box warn">🔒 Key 一般只显示一次，复制后先粘到 <span class="inline">.env</span> 或记事本，关掉弹窗就看不到原文了。</div>
+        <div class="box warn">⏳ 本组踩坑：页面提示「保存成功，变更预计五分钟生效」。刚创建完立刻调用会返回 401 鉴权失败，等几分钟再测即可，别误当成代码写错。</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">4</span>确认 model 填什么（方舟重点）</div>
+        <p>调用时 <span class="inline">model</span> 字段填<strong>推理接入点 EP ID</strong>（在「在线推理 / 开通管理」里创建接入点后复制），形如 <span class="inline">ep-202406040****-*****</span>；部分公共模型也可直接填模型 ID。</p>
+        <div class="box danger">⚠️ 方舟和硅基流动不一样：model 不能随便写一个模型名字，必须填控制台里有效的接入点 EP ID（或已开通的模型 ID），否则会 404。</div>
+        <p class="muted">具体可用模型与接入点以控制台「开通管理 / 在线推理」页面为准，模型版本会随平台更新。</p>
+      </div>
+
+      <h3>先 curl 验一次 Key 通不通</h3>
+      <p>curl 就是在命令行发一个 HTTP 请求。先测通，才能分清是 Key 问题还是代码问题。方舟接口兼容 OpenAI 格式。</p>
+      <div class="code"><button class="copy">复制</button><pre><code>curl --request POST ^
+  --url https://ark.cn-beijing.volces.com/api/v3/chat/completions ^
+  -H "Content-Type: application/json" ^
+  -H "Authorization: Bearer YOUR_ARK_API_KEY" ^
+  -d "{\"model\":\"【填入你的接入点 EP ID】\",\"messages\":[{\"role\":\"system\",\"content\":\"你是计算机课程助教，只解答计算机、编程、网络相关问题\"},{\"role\":\"user\",\"content\":\"解释一下 CORS 跨域\"}]}"</code></pre></div>
+      <div class="box tip">✅ 返回一大段 JSON，里面有 <span class="inline">"content":"你好！我是……"</span> 的中文回答，就说明 Key、模型和额度都没问题。</div>
+    </section>
+
+    <!-- 4 核心实现 -->
+    <section id="s4">
+      <div class="sec-head"><div class="sec-num">4</div><h2>核心实现：五步走</h2></div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">1</span>Key 写进后端 .env（不加引号、不留空格）</div>
+        <div class="code"><button class="copy">复制</button><pre><code>ARK_API_KEY=ark-你的豆包Key
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_EP_ID=你的方舟接入点EP ID</code></pre></div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">2</span>后端接口 /api/chat 做三件事</div>
+        <p>收前端发来的 <span class="inline">messages</span> 数组 → 带上 Key 转发给豆包方舟 → 把回答原样返回前端。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">3</span>system 提示词：约束助教人设与边界</div>
+        <div class="code"><button class="copy">复制</button><pre><code>你是一名计算机课程助教，只回答前端、Java 后端、计算机网络、全栈开发相关的学习问题；
+回答尽量通俗、分点说明，必要时给一个小例子。
+与课程学习无关的问题（游戏、娱乐、闲聊、生活琐事等），请礼貌说明你只负责课程答疑，
+并引导对方提出学习相关问题，不要编造答案。</code></pre></div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">4</span>多轮对话：维护 messages 数组</div>
+        <p>模型本身不记事。所谓「记得上文」，是每次请求都把之前的对话一起发过去。每轮把用户消息和 AI 回复都 push 进数组。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">5</span>页面：输入框 + 发送按钮 + 消息区</div>
+        <p>发送后先显示用户气泡，等待期间提示「正在思考…」，接口返回后再追加 AI 回答。</p>
+      </div>
+
+      <div class="box tip">
+        <div class="bt">🧠 调参数小抄</div>
+        <span class="inline">temperature</span> 越高越发散（聊天 0.7，查资料 0.2）；<span class="inline">max_tokens</span> 太小会「话说到一半断掉」，调大即可。
+      </div>
+    </section>
+
+    <!-- 4+ 本组实操做法举例 -->
+    <section id="s4b">
+      <div class="sec-head"><div class="sec-num">★</div><h2>本组实操做法举例（第 5 组）</h2></div>
+      <p class="sec-desc">下面是我们这组实际落地的方式，作为课堂示例：后端接口和页面代码由 Trae 根据提示词生成，我们负责配置 Key、核对参数、跑通演示并讲清原理。</p>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">1</span>选型：主用豆包方舟 doubao-seed</div>
+        <p>本组主模型选<strong>豆包方舟 doubao-seed</strong>（OpenAI 兼容格式），对比平台保留硅基流动，页面下拉框可在两者间切换，业务代码不动。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">2</span>把需求和 Key 交给 Trae 生成代码</div>
+        <p>没有手写后端，而是把下面这段需求 + 自己的 Key 一起发给 Trae，让它生成后端 <span class="inline">/api/chat</span> 接口和聊天页面：</p>
+        <div class="code"><button class="copy">复制</button><pre><code>接入豆包方舟大模型，做一个「计算机课程答疑助教」网页：
+1. 后端提供 /api/chat 接口，从后端 .env 读取 ARK_API_KEY、ARK_BASE_URL、ARK_EP_ID，
+   把前端发来的 messages 数组转发给方舟，再把模型回答原样返回前端；
+2. 前端做聊天页面：输入框 + 发送按钮 + 消息区，发送后先显示用户气泡，
+   等待时提示「正在思考…」，返回后追加 AI 回答，支持多轮对话；
+3. system 人设提示词：
+   你是一名计算机课程助教，只回答前端、Java 后端、计算机网络、全栈开发相关的学习问题；
+   回答尽量通俗、分点说明。与课程学习无关的问题礼貌说明并引导留言，不要编造答案。
+Api-key：sk-把这里换成你自己的豆包 Key</code></pre></div>
+        <div class="box warn">🔴 红色部分换成你自己刚复制的 Key；Key 只写进后端 .env，不要出现在前端代码或提示词截图里。</div>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">3</span>配置后端 .env 三项（本组脱敏样例）</div>
+        <div class="code"><button class="copy">复制</button><pre><code>ARK_API_KEY=ark-ff492a1c-****-****-****-65c0f
+ARK_BASE_URL=https://ark.cn-beijing.volces.com/api/v3
+ARK_EP_ID=填入你的方舟接入点 EP ID</code></pre></div>
+        <p class="muted">改完 .env 记得重启后端；EP 接入点 ID 以方舟控制台「在线推理」里创建的为准。</p>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">★</span>本组两个真实踩坑（可当加分讲解点）</div>
+        <ul>
+          <li><strong>Key 刚建没生效</strong>：创建后页面提示「变更预计五分钟生效」，立刻调用会 401，等几分钟再测；</li>
+          <li><strong>model 填错成模型名</strong>：方舟 OpenAI 兼容接口要填接入点 EP ID，直接写模型名会一直 404，回控制台核对接入点。</li>
+        </ul>
+      </div>
+
+      <div class="step">
+        <div class="step-title"><span class="step-badge">4</span>我们现场怎么演示</div>
+        <ol>
+          <li>先用 curl 测一次 Key，确认方舟返回中文回答；</li>
+          <li>页面先发 3 个课程问题（CORS、String/StringBuilder、TCP 三次握手），看正常解答；</li>
+          <li>再发 2 个越界问题（推荐游戏、问天气），看助教礼貌拒答并引导回学习话题；</li>
+          <li>下拉切到硅基流动，同一个问题再问一遍，验证只换三个值即可照常对话。</li>
+        </ol>
+      </div>
+
+      <div class="box key">
+        <div class="bt">📌 我们这组的分工一句话</div>
+        Trae 负责生成接口和页面代码，我们负责：把 Key 安全放进 .env、核对 baseURL / model / apiKey、用提示词管住人设、跑通演示并解释背后的原理。
+      </div>
+    </section>
+
+    <!-- 5 Demo -->
+    <section id="s5">
+      <div class="sec-head"><div class="sec-num">5</div><h2>现场 Demo 演示（页面原型）</h2></div>
+      <p class="sec-desc">下面是页面原型的模拟演示（本地预设问答，不消耗真实额度），现场可直接照着点。建议先演示 3 个该答问题，再演示 2 个该拒问题。</p>
+
+      <div class="demo">
+        <div class="demo-bar">
+          <span class="name">🎓 豆包课程答疑助教</span>
+          <select id="modelSel">
+            <option>豆包方舟 · doubao-seed 接入点</option>
+            <option>硅基流动 · DeepSeek-V4-Flash</option>
+          </select>
+        </div>
+        <div class="chat" id="chat">
+          <div class="msg bot">你好，我是课程答疑助教 👋 可以问我前端、Java、计算机网络、全栈开发相关的学习问题。</div>
+        </div>
+        <div class="input-row">
+          <input id="input" type="text" placeholder="输入你的学习问题，回车发送…">
+          <button id="send">发送</button>
+        </div>
+      </div>
+      <div class="quick">
+        <button data-q="CORS 是什么？为什么会报跨域错误？">CORS 是什么？</button>
+        <button data-q="Java 里 String 和 StringBuilder 有什么区别？">String vs StringBuilder</button>
+        <button data-q="TCP 三次握手为什么是三次？">TCP 三次握手</button>
+        <button data-q="推荐个好玩的游戏吧">推荐个游戏（越界）</button>
+        <button data-q="今天天气怎么样？">问天气（越界）</button>
+      </div>
+
+      <h3>测试用例表：3 个该答 + 2 个该拒</h3>
+      <table>
+        <thead><tr><th>#</th><th>测试问题</th><th>预期</th><th>考察点</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>CORS 是什么？为什么会报跨域错误？</td><td class="qa-good">正常解答</td><td>网络 / 前端基础</td></tr>
+          <tr><td>2</td><td>Java 里 String 和 StringBuilder 有什么区别？</td><td class="qa-good">正常解答</td><td>Java 后端基础</td></tr>
+          <tr><td>3</td><td>TCP 三次握手为什么是三次？</td><td class="qa-good">正常解答</td><td>计算机网络</td></tr>
+          <tr><td>4</td><td>推荐个好玩的游戏吧</td><td class="qa-bad">礼貌拒答</td><td>越界边界约束</td></tr>
+          <tr><td>5</td><td>今天天气怎么样？</td><td class="qa-bad">礼貌拒答</td><td>越界边界约束</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 6 换平台 -->
+    <section id="s6">
+      <div class="sec-head"><div class="sec-num">6</div><h2>换平台：只改三个值</h2></div>
+      <p class="sec-desc">同一个页面和接口，只换「钥匙」和「门牌号」，体会 OpenAI 兼容的好处。</p>
+      <table>
+        <thead><tr><th>参数</th><th>豆包方舟（主）</th><th>硅基流动（对比）</th></tr></thead>
+        <tbody>
+          <tr><td>baseURL</td><td><code>https://ark.cn-beijing.volces.com/api/v3</code></td><td><code>https://api.siliconflow.cn/v1</code></td></tr>
+          <tr><td>model</td><td>接入点 <code>EP ID</code>（ep-xxxx）</td><td><code>deepseek-ai/DeepSeek-V4-Flash</code></td></tr>
+          <tr><td>apiKey</td><td>方舟 ARK_API_KEY</td><td>硅基流动 Key</td></tr>
+        </tbody>
+      </table>
+      <div class="code"><button class="copy">复制</button><pre><code>// 之前（豆包方舟）
+baseURL = "https://ark.cn-beijing.volces.com/api/v3";
+model   = "你的接入点 EP ID";
+
+// 现在（硅基流动）
+baseURL = "https://api.siliconflow.cn/v1";
+model   = "deepseek-ai/DeepSeek-V4-Flash";
+// apiKey 换成另一平台的 Key，其余代码完全不动</code></pre></div>
+      <div class="box tip">💡 火山方舟兼容 OpenAI SDK：只改 <span class="inline">base_url</span>、<span class="inline">model</span>、<span class="inline">api_key</span> 少量配置即可接入。</div>
+      <div class="box warn">换平台报 404，先检查 baseURL 末尾路径是否完整，以及 model 填的是有效 Model ID 还是正确的 EP 接入点。</div>
+    </section>
+
+    <!-- 7 踩坑 -->
+    <section id="s7">
+      <div class="sec-head"><div class="sec-num">7</div><h2>踩坑速查表</h2></div>
+      <table>
+        <thead><tr><th>现象</th><th>原因</th><th>解决</th></tr></thead>
+        <tbody>
+          <tr><td>401</td><td>Key 错 / 少写 Bearer / 带了空格换行；<strong>本组遇到：新建 Key 未满 5 分钟生效</strong></td><td>重新复制 Key，请求头写成 <code>Authorization: Bearer ark-xxx</code>；刚创建的 Key 等 5 分钟再测</td></tr>
+          <tr><td>模型无权限 / 不可用</td><td>对应模型没在方舟「开通管理」开通</td><td>回控制台开通该模型服务，再重试</td></tr>
+          <tr><td>402 · 余额不足</td><td>免费额度用完，或未开通模型</td><td>查看额度消耗；或先换另一个平台</td></tr>
+          <tr><td>404</td><td><strong>本组遇到：model 填成了模型名，没填接入点 EP ID</strong>；或 baseURL 路径不全</td><td>方舟 model 填控制台接入点 EP ID，逐个字符核对 model 与 baseURL</td></tr>
+          <tr><td>429</td><td>请求太频繁被限流（公共接入点有 tpm 限制）</td><td>加几百毫秒延迟，减少连续点击</td></tr>
+          <tr><td>CORS 报错</td><td>前端直连模型接口，Key 也暴露了</td><td>改走自己的后端 <code>/api/chat</code> 转发</td></tr>
+          <tr><td>一直思考后超时</td><td>网络不通，或改 .env 后没重启后端</td><td>先用 curl 测通，再回前端排查</td></tr>
+          <tr><td>回答说一半断掉</td><td>max_tokens 太小</td><td>调大该参数</td></tr>
+        </tbody>
+      </table>
+      <div class="box tip">🧠 排错顺序：先 curl 测 Key → 再测后端接口 → 最后看前端，从里往外查。</div>
+    </section>
+
+    <!-- 8 答辩 -->
+    <section id="s8">
+      <div class="sec-head"><div class="sec-num">8</div><h2>答辩三问与总结</h2></div>
+
+      <h3>现场答辩三问（准备好口语版答案）</h3>
+      <table>
+        <thead><tr><th>问题</th><th>回答要点</th></tr></thead>
+        <tbody>
+          <tr><td>① 为什么 Key 不能放前端？</td><td>前端代码公开，F12 就能看到；放出去别人能盗用额度甚至欠费。所以 Key 只放后端 .env，由后端转发。</td></tr>
+          <tr><td>② 多轮对话为什么要把历史消息一起发？</td><td>模型本身不记事，每次请求都是独立的；把历史 messages 一起带上，模型才能结合上文回答。</td></tr>
+          <tr><td>③ 换个平台改哪几个值？为什么只改这几个？</td><td>只改 baseURL、model、apiKey 三个值。因为豆包方舟等主流平台都兼容 OpenAI 接口格式，地址结构、请求体、返回结构一致，业务代码不用动。</td></tr>
+        </tbody>
+      </table>
+
+      <h3>验收清单</h3>
+      <ul class="check">
+        <li>Key 只出现在后端 .env，前端源码、文档、Git 里都搜不到；</li>
+        <li>curl 能返回豆包中文回答；</li>
+        <li>页面能提问并显示回答，等待时有「正在思考…」；</li>
+        <li>追问「我刚才问了什么」能答上来；</li>
+        <li>切到另一平台后页面照常对话；</li>
+        <li>Key 改错一位时，页面给出友好提示而不是白屏。</li>
+      </ul>
+
+      <div class="box danger" style="margin-top:20px">🔑 Key 是钥匙，不是作业——谁的额度谁的，别借用别人的 Key。</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// 复制按钮
+document.querySelectorAll('.code').forEach(function(block){
+  var btn = block.querySelector('.copy');
+  btn.addEventListener('click', function(){
+    var text = block.querySelector('code').innerText;
+    navigator.clipboard.writeText(text).then(function(){
+      btn.textContent = '已复制'; setTimeout(function(){btn.textContent='复制';},1500);
+    }).catch(function(){
+      btn.textContent = '复制失败'; setTimeout(function(){btn.textContent='复制';},1500);
+    });
+  });
+});
+
+// 目录高亮
+var links = Array.prototype.slice.call(document.querySelectorAll('#toc a'));
+var sections = links.map(function(a){return document.querySelector(a.getAttribute('href'));});
+function onScroll(){
+  var pos = window.scrollY + 60, idx = 0;
+  sections.forEach(function(sec,i){ if(sec && sec.offsetTop <= pos) idx = i; });
+  links.forEach(function(a,i){a.classList.toggle('active',i===idx);});
+}
+window.addEventListener('scroll', onScroll); onScroll();
+
+// 模拟问答（本地预设，不调真实接口）
+var replies = {
+  "CORS 是什么？为什么会报跨域错误？": "CORS（跨域资源共享）是浏览器的一种安全机制。当你的页面地址和后端接口地址「不同源」（协议、域名、端口任一不同）时，浏览器会先检查后端有没有允许跨域的响应头；没带上的话，浏览器就会拦下响应，控制台报 CORS 错误。\n\n常见解决：后端在 /api/chat 上配置跨域允许头，或者前后端用同一个域名反向代理，避免前端直连模型接口。",
+  "Java 里 String 和 StringBuilder 有什么区别？": "1. String 是不可变对象，每次拼接都会生成新对象，频繁拼接效率低；\n2. StringBuilder 是可变字符序列，在原有缓冲区上追加，拼接性能更好；\n3. 单线程下大量字符串拼接优先用 StringBuilder；如果需要线程安全，用 StringBuffer。",
+  "TCP 三次握手为什么是三次？": "三次握手是为了双方都确认彼此的收发能力正常：\n1. 客户端发 SYN，请求建立连接；\n2. 服务端回 SYN+ACK，确认收到并也发起请求；\n3. 客户端再回 ACK，双方确认完成。\n\n两次会让服务端无法确认客户端收到了自己的响应，四次则多余，所以三次是最经济可靠的次数。"
+};
+var refuse = "抱歉，我是计算机课程答疑助教，只回答前端、Java、计算机网络、全栈开发等学习相关问题。这个问题超出了我的范围，你可以换一个课程相关的问题来问我。";
+
+var chat = document.getElementById('chat');
+var input = document.getElementById('input');
+var sel = document.getElementById('modelSel');
+
+function addMsg(text, who, refuse){
+  var div = document.createElement('div');
+  div.className = 'msg ' + who + (refuse ? ' refuse' : '');
+  div.textContent = text;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+
+function answer(q){
+  var think = document.createElement('div');
+  think.className = 'thinking';
+  think.textContent = '正在思考…（' + sel.value + '）';
+  chat.appendChild(think);
+  chat.scrollTop = chat.scrollHeight;
+  setTimeout(function(){
+    think.remove();
+    var isRefuse = !replies[q];
+    addMsg(replies[q] || refuse, 'bot', isRefuse);
+  }, 700);
+}
+
+function send(){
+  var q = input.value.trim();
+  if(!q) return;
+  addMsg(q, 'user');
+  input.value = '';
+  answer(q);
+}
+document.getElementById('send').addEventListener('click', send);
+input.addEventListener('keydown', function(e){ if(e.key === 'Enter') send(); });
+document.querySelectorAll('.quick button').forEach(function(b){
+  b.addEventListener('click', function(){
+    addMsg(b.dataset.q, 'user');
+    answer(b.dataset.q);
+  });
+});
+</script>
+</body>
+</html>
